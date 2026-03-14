@@ -1,8 +1,8 @@
 require('dotenv').config();
 const { ethers } = require("ethers");
-const { BitGo } = require("bitgo"); // Using the official SDK
+const { BitGo } = require("bitgo");
 
-// 1. Initialize BitGo for the Testnet Environment
+// 1. Initialize BitGo
 const bitgo = new BitGo({ 
     env: 'test', 
     accessToken: process.env.BITGO_ACCESS_TOKEN 
@@ -18,73 +18,83 @@ const ABI = [
 const provider = new ethers.JsonRpcProvider(PROVIDER_URL, 84532);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
-async function triggerBitGoPayout(buyer, merchant, amountUSDC) {
-    console.log(`\n🏦 Initiating secure BitGo SDK transfer...`);
+async function triggerBitGoPayout(buyer, merchant, payoutAmountUnits) {
+    console.log(`\n🏦 Initiating Pure Base Sepolia USDC Payout...`);
     
     try {
-        // 1. Initialize the specific blockchain coin instance (Make sure this is 'hteth' in your .env!)
-        const coin = bitgo.coin(process.env.BITGO_COIN);
-        
-        // 2. Fetch the wallet securely
+        const coin = bitgo.coin('tbaseeth:usdc'); 
         const wallet = await coin.wallets().get({ id: process.env.BITGO_WALLET_ID });
-        const ETH_PRICE_IN_USD = 3000;
-        
-        // 2. Convert the USDC into ETH via Mock Oracle
-        const amountETH = amountUSDC / ETH_PRICE_IN_USD;
-        
-        // 3. Convert the ETH into Wei (18 decimals) for BitGo
-        const sendAmountWei = ethers.parseUnits(amountETH.toFixed(18), 18).toString();
-        
-        console.log(`Oracle Conversion: ${amountUSDC} USDC = ${amountETH} ETH`);
-        console.log(`Sending ${sendAmountWei} Wei to Merchant: ${merchant}...`);
-        console.log(`Routing ${amountUSDC} to Merchant: ${merchant}...`);
 
-        // 3. Execute the official send command
-        const transaction = await wallet.send({
-            amount: sendAmountWei,
-            address: merchant,
-            walletPassphrase: process.env.BITGO_WALLET_PASSPHRASE
-        });
+        const displayAmount = payoutAmountUnits / 1e6;
+        
+        console.log(`💰 Treasury USDC Balance: ${wallet.balanceString()} units`);
+        console.log(`🚀 Routing ${displayAmount} USDC to Merchant: ${merchant}...`);
 
-        // Optional: Check if it hit the BitGo Enterprise Policy
+        // The BitGo Dev's exact working payload for ERC-20
+        const params = {
+            recipients: [{ 
+                amount: payoutAmountUnits.toString(), 
+                address: merchant,
+                tokenName: 'tbaseeth:usdc'
+            }],
+            walletPassphrase: process.env.BITGO_WALLET_PASSPHRASE,
+            tokenName: 'tbaseeth:usdc', 
+            type: 'transfer',
+        };
+
+        const transaction = await wallet.sendMany(params);
+
         if (transaction.status === 'pendingApproval') {
             console.log(`🚨 BITGO POLICY TRIGGERED: Manual Admin Approval Required.`);
         } else {
-            console.log(`✅ SUCCESS! Funds securely released via BitGo SDK.`);
+            console.log(`✅ SUCCESS! BitGo TxID: ${transaction.txid}`);
         }
-        
-        console.log(`BitGo TxID: ${transaction.txid}\n`);
 
     } catch (error) {
         console.error(`⚠️ BitGo SDK Error:`, error.message);
     }
 }
 
+// 🛑 The Loop-Breaker Flag
+let isProcessing = false;
+
 async function main() {
     console.log("🛰️ Production Watchtower active. Polling Base Sepolia...");
-    let lastCheckedBlock = await provider.getBlockNumber();
+    
+    // Start scanning from the current block, minus 1 just to be safe
+    let lastCheckedBlock = await provider.getBlockNumber() - 1;
 
     setInterval(async () => {
+        // If we are currently handling a payout, don't run the interval again!
+        if (isProcessing) return; 
+
         try {
+            isProcessing = true; // Lock the process
+            
             const latestBlock = await provider.getBlockNumber();
+            
             if (latestBlock > lastCheckedBlock) {
+                // Query only the blocks we haven't checked yet
                 const events = await contract.queryFilter("CheckoutCompleted", lastCheckedBlock + 1, latestBlock);
                 
                 for (const event of events) {
                     const [buyer, merchant, itemPrice, payoutAmount] = event.args;
-                    const amountUSDC = parseFloat(ethers.formatUnits(payoutAmount, 6));
                     
                     console.log(`\n🚨 SECURE PURCHASE DETECTED 🚨`);
-                    console.log(`Block: ${event.blockNumber}`);
-                    console.log(`Buyer: ${buyer}`);
+                    console.log(`Block: ${event.blockNumber} | Buyer: ${buyer}`);
                     
-                    // Trigger the production BitGo logic
-                    await triggerBitGoPayout(buyer, merchant, amountUSDC);
+                    // Wait for the payout to finish before moving to the next event
+                    await triggerBitGoPayout(buyer, merchant, payoutAmount.toString());
                 }
-                lastCheckedBlock = latestBlock;
+                
+                // Update the block tracker ONLY after all events in this range are handled
+                lastCheckedBlock = latestBlock; 
             }
         } catch (error) {
-            console.log("RPC sync pending, retrying on next tick...");
+            console.log("RPC sync pending, retrying...");
+        } finally {
+            // Unlock the process so the next interval can run
+            isProcessing = false; 
         }
     }, 5000); 
 }
