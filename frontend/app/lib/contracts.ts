@@ -1,6 +1,6 @@
 // app/lib/contracts.ts
 
-export const GATEWAY_ADDRESS = "0xB24e55F0ef885AC221252E03a260f847775c3B6b";
+export const GATEWAY_ADDRESS = "0xE480c32ae00C027452DB33727C5a3Fa9D982C2ce";
 export const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 export const GATEWAY_ABI = [
@@ -44,8 +44,67 @@ export const GATEWAY_ABI = [
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "activeLoans",
+    "outputs": [
+      {"internalType": "uint256", "name": "totalItemPrice", "type": "uint256"},
+      {"internalType": "uint256", "name": "downPayment", "type": "uint256"},
+      {"internalType": "uint256", "name": "principalLoan", "type": "uint256"},
+      {"internalType": "uint256", "name": "interestFee", "type": "uint256"},
+      {"internalType": "uint256", "name": "remainingDebt", "type": "uint256"},
+      {"internalType": "bool", "name": "isActive", "type": "bool"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "repaymentAmount", "type": "uint256"}],
+    "name": "repayLoan",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+
+  {
+    "inputs": [],
+    "name": "getIdleUSDCBalance",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+        {"internalType": "uint256", "name": "totalAmount", "type": "uint256"},
+        {"internalType": "uint256", "name": "agentCommission", "type": "uint256"}
+    ],
+    "name": "routeFundsToAave",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "amount", "type": "uint256"}],
+    "name": "withdrawFromAave",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "address", "name": "buyer", "type": "address"},
+      {"indexed": true, "internalType": "address", "name": "merchant", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "itemPrice", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "payoutAmount", "type": "uint256"}
+    ],
+    "name": "CheckoutCompleted",
+    "type": "event"
   }
-];
+] as const; 
 
 export const USDC_ABI = [
   {
@@ -68,4 +127,4 @@ export const USDC_ABI = [
     "outputs": [{ "name": "", "type": "uint256" }],
     "stateMutability": "view"
   }
-];
+] as const;

@@ -15,17 +15,15 @@ export default function CheckoutCard() {
     setMounted(true);
   }, []);
 
-  const itemPrice = 100; // $100
+  const itemPrice = 1; // $100
   const downpaymentPercent = 20; // 20%
   const downpaymentAmount = (itemPrice * downpaymentPercent) / 100; // $20
   const principal = itemPrice - downpaymentAmount; // $80
   const interest = principal * 0.05; // 5% flat fee = $4
   const totalRepayment = principal + interest; // $84
 
-  // --- WAGMI SMART CONTRACT HOOKS ---
   const { writeContractAsync, isPending } = useWriteContract();
 
-  // 1. Check if user is already verified via zkTLS
   const { data: isVerified } = useReadContract({
     address: GATEWAY_ADDRESS as `0x${string}`,
     abi: GATEWAY_ABI,
@@ -33,7 +31,6 @@ export default function CheckoutCard() {
     args: [address],
   });
 
-  // 2. Check USDC Allowance (Has the user approved the contract to take $20?)
   const { data: allowance } = useReadContract({
     address: USDC_ADDRESS as `0x${string}`,
     abi: USDC_ABI,
@@ -43,7 +40,6 @@ export default function CheckoutCard() {
 
   const handleApproveUSDC = async () => {
     try {
-      // Approve exactly $20 (6 decimals for USDC)
       const tx = await writeContractAsync({
         address: USDC_ADDRESS as `0x${string}`,
         abi: USDC_ABI,
@@ -65,6 +61,7 @@ export default function CheckoutCard() {
         abi: GATEWAY_ABI,
         functionName: 'initiateCheckout',
         args: [parseUnits(itemPrice.toString(), 6), merchantAddress, downpaymentPercent],
+        gas: BigInt(2000000),
       });
       console.log('Checkout Completed:', tx);
       setStep('success');
@@ -73,7 +70,7 @@ export default function CheckoutCard() {
     }
   };
 
-  if (!mounted) return null; // Prevents the hydration mismatch!
+  if (!mounted) return null; 
 
   if (!isConnected) {
     return (

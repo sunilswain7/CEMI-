@@ -4,7 +4,8 @@
 import Link from 'next/link';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
-import { useState, useEffect } from 'react'; // <--- 1. ADDED IMPORT
+import { useState, useEffect } from 'react'; 
+import UserIdentityBadge from './UserIdentityBadge';
 
 export default function Navbar() {
   const { address, status } = useAccount();
@@ -13,7 +14,6 @@ export default function Navbar() {
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
 
-  // <--- 2. ADDED MOUNTED STATE
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -28,23 +28,32 @@ export default function Navbar() {
           <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-600 tracking-tight">
             Paisa.Fi
           </Link>
-          <div className="hidden md:flex gap-6 text-sm font-medium text-gray-400">
+          <div className="hidden md:flex gap-6 text-sm font-medium text-gray-400 items-center">
             <Link href="/" className="hover:text-white transition-colors">Store</Link>
-            <span className="cursor-not-allowed text-gray-600">My EMI Dashboard (Locked)</span>
+            
+            {/* 👇 THE UPGRADE: Dynamically Unlocking Dashboard Link 👇 */}
+            {!mounted ? (
+               <span className="text-gray-800 animate-pulse">Loading...</span>
+            ) : isConnected ? (
+              <Link href="/dashboard" className="hover:text-purple-400 transition-colors font-bold text-white flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                My EMI Dashboard
+              </Link>
+            ) : (
+              <span className="cursor-not-allowed text-gray-600" title="Connect wallet to unlock">
+                My EMI Dashboard (Locked)
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right Side: Web3 Wallet Connect */}
         <div>
-          {/* <--- 3. ADDED MOUNTED CHECK */}
           {!mounted ? (
             <div className="w-[140px] h-[42px] bg-gray-900 rounded-lg animate-pulse border border-gray-800"></div>
           ) : isConnected ? (
-            <button 
-              onClick={() => disconnect()}
-              className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-lg text-sm font-mono font-semibold transition-all border border-gray-700 shadow-sm"
-            >
-              {address?.slice(0, 6)}...{address?.slice(-4)}
+            <button onClick={() => disconnect()} className="hover:opacity-80 transition-opacity">
+              <UserIdentityBadge />
             </button>
           ) : (
             <button 

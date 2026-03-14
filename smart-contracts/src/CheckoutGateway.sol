@@ -10,6 +10,7 @@ interface IERC20 {
 
 interface IAavePool {
     function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
+    function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 }
 
 struct Proof {
@@ -48,6 +49,7 @@ contract CheckoutGateway {
     event CheckoutCompleted(address indexed buyer, address indexed merchant, uint256 itemPrice, uint256 payoutAmount); 
     event YieldRouted(uint256 totalAmount, uint256 aaveDeposit, uint256 aiPaycheck); 
     event LoanRepaid(address indexed buyer, uint256 amountRepaid); 
+    event YieldHarvested(uint256 amount);
 
     constructor(address _usdc, address _aave, address _reclaim, address _aiAgent) {
         admin = msg.sender;
@@ -133,10 +135,17 @@ contract CheckoutGateway {
         uint256 aaveDeposit = amount - AI_COMMISSION_FEE;
         require(usdc.transfer(aiAgentWallet, AI_COMMISSION_FEE), "AI Paycheck failed");
 
-        usdc.approve(address(aavePool), aaveDeposit);
-        aavePool.supply(address(usdc), aaveDeposit, address(this), 0);
+        // usdc.approve(address(aavePool), aaveDeposit);
+        // aavePool.supply(address(usdc), aaveDeposit, address(this), 0);
 
         emit YieldRouted(amount, aaveDeposit, AI_COMMISSION_FEE);
+    }
+
+    /// @notice 5. AI Agent Yield Harvesting
+    function withdrawFromAave(uint256 amount) external onlyAdminOrAI {
+        // Aave Pool burns the aUSDC from this contract and returns standard USDC
+        aavePool.withdraw(address(usdc), amount, address(this));
+        emit YieldHarvested(amount);
     }
 
     /// @notice 4. Flexible Loan Repayment
@@ -165,9 +174,6 @@ contract CheckoutGateway {
 
     // This is ultra gas-efficient and won't revert
     function forceVerify() external {
-        // In a real production app, only the backend 'owner' would call this
-        // But for the hackathon demo, we'll allow the user to call it 
-        // after the backend gives them the green light.
         isCreditVerified[msg.sender] = true;
     }
 }
