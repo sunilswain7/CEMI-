@@ -1,6 +1,6 @@
 // app/lib/contracts.ts
 
-export const GATEWAY_ADDRESS = "0xE480c32ae00C027452DB33727C5a3Fa9D982C2ce";
+export const GATEWAY_ADDRESS = "0xE08781371003b61d6d648e6a489D7Afed3ADEFdE";
 export const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 export const GATEWAY_ABI = [

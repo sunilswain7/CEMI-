@@ -176,4 +176,9 @@ contract CheckoutGateway {
     function forceVerify() external {
         isCreditVerified[msg.sender] = true;
     }
+
+    /// @notice 6. Auto-Sweep to BitGo Treasury
+    function sweepToTreasury(address bitgoVaultAddress, uint256 amount) external onlyAdminOrAI {
+        require(usdc.transfer(bitgoVaultAddress, amount), "Sweep failed");
+    }
 }
