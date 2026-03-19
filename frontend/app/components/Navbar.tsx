@@ -26,7 +26,7 @@ export default function Navbar() {
         {/* Left Side: Logo & Links */}
         <div className="flex items-center gap-8">
           <Link href="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-600 tracking-tight">
-            Paisa.Fi
+            CEMI
           </Link>
           <div className="hidden md:flex gap-6 text-sm font-medium text-gray-400 items-center">
             <Link href="/" className="hover:text-white transition-colors">Store</Link>

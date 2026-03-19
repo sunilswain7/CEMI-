@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt,useEnsName} from 'wagmi';
 import { parseUnits } from 'viem';
 import { ShieldCheck, Zap, Lock, Loader2 } from 'lucide-react';
 import { GATEWAY_ADDRESS, GATEWAY_ABI, USDC_ADDRESS, USDC_ABI } from '../lib/contracts';
@@ -28,14 +28,14 @@ export default function CheckoutCard() {
     address: GATEWAY_ADDRESS as `0x${string}`,
     abi: GATEWAY_ABI,
     functionName: 'isCreditVerified',
-    args: [address],
+    args: [address as `0x${string}`],
   });
 
   const { data: allowance } = useReadContract({
     address: USDC_ADDRESS as `0x${string}`,
     abi: USDC_ABI,
     functionName: 'allowance',
-    args: [address, GATEWAY_ADDRESS],
+    args: [address as `0x${string}`, GATEWAY_ADDRESS],
   });
 
   const handleApproveUSDC = async () => {
@@ -60,9 +60,10 @@ export default function CheckoutCard() {
         address: GATEWAY_ADDRESS as `0x${string}`,
         abi: GATEWAY_ABI,
         functionName: 'initiateCheckout',
-        args: [parseUnits(itemPrice.toString(), 6), merchantAddress, downpaymentPercent],
+        args: [parseUnits(itemPrice.toString(), 6), merchantAddress, downpaymentPercent as unknown as bigint],
         gas: BigInt(2000000),
       });
+      
       console.log('Checkout Completed:', tx);
       setStep('success');
     } catch (error) {
